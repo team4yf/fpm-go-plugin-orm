@@ -8,7 +8,7 @@ import (
 	"github.com/team4yf/yf-fpm-server-go/fpm"
 	"github.com/team4yf/yf-fpm-server-go/pkg/db"
 
-	_ "github.com/team4yf/fpm-go-plugin-orm-pg/plugins/pg"
+	_ "github.com/team4yf/fpm-go-plugin-orm/plugins/pg"
 )
 
 type countBody struct {
