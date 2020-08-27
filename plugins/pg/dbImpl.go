@@ -143,7 +143,7 @@ func (p *pgImpl) Transaction(body func(db.Database) error) error {
 // }).Condition("name = ?", "c").Find(&list).Error()
 func (p *pgImpl) Find(result interface{}) db.Database {
 	//TODO sort & skip & check the result point
-	query := p.db.Model(p.q.model).Where(p.q.condition, p.q.arguments)
+	query := p.db.Model(p.q.model).Where(p.q.condition, p.q.arguments...)
 	query = query.Offset(p.q.pager.Skip).Limit(p.q.pager.Limit)
 	if len(p.q.sorter) > 0 {
 		for _, sort := range p.q.sorter {
@@ -160,7 +160,7 @@ func (p *pgImpl) Find(result interface{}) db.Database {
 // err = dbclient.Model(Fake{}).Condition("name = ?", "c").Count(&total).Error()
 // total is the count
 func (p *pgImpl) Count(total *int) db.Database {
-	p.q.err = p.db.Model(p.q.model).Where(p.q.condition, p.q.arguments).Count(total).Error
+	p.q.err = p.db.Model(p.q.model).Where(p.q.condition, p.q.arguments...).Count(total).Error
 	return p
 }
 
@@ -182,7 +182,7 @@ func (p *pgImpl) FindAndCount(result interface{}, total *int) db.Database {
 // one := &Fake{}
 // err = dbclient.Model(one).Condition("name = ?", "c").First(&one).Error()
 func (p *pgImpl) First(result interface{}) db.Database {
-	query := p.db.Model(p.q.model).Where(p.q.condition, p.q.arguments)
+	query := p.db.Model(p.q.model).Where(p.q.condition, p.q.arguments...)
 	query = query.Offset(p.q.pager.Skip).Limit(p.q.pager.Limit)
 	if len(p.q.sorter) > 0 {
 		for _, sort := range p.q.sorter {
@@ -213,7 +213,7 @@ func (p *pgImpl) Create(entity interface{}) db.Database {
 // rows := 0
 // err = dbclient.Model(Fake{}).Condition("name = ?", "c").Remove(&rows).Error()
 func (p *pgImpl) Remove(total *int) db.Database {
-	d := p.db.Where(p.q.condition, p.q.arguments).Delete(p.q.model)
+	d := p.db.Where(p.q.condition, p.q.arguments...).Delete(p.q.model)
 	*total = (int)(d.RowsAffected)
 	p.q.err = d.Error
 	return p
@@ -226,7 +226,7 @@ func (p *pgImpl) Remove(total *int) db.Database {
 // }
 // err = dbclient.Model(Fake{}).Condition("name = ?", "c").Updates(fields, &total).Error()
 func (p *pgImpl) Updates(updates db.CommonMap, rows *int) db.Database {
-	q := p.db.Model(p.q.model).Where(p.q.condition, p.q.arguments).Updates(updates)
+	q := p.db.Model(p.q.model).Where(p.q.condition, p.q.arguments...).Updates(updates)
 	p.q.err = q.Error
 	*rows = (int)(q.RowsAffected)
 	return p
