@@ -26,34 +26,10 @@ type DBSetting struct {
 	ShowSQL  bool
 }
 
-//queryData the query data
-type queryData struct {
-	condition string
-	arguments []interface{}
-	pager     *db.Pagination
-	sorter    []db.Sorter
-	err       error
-	model     interface{}
-}
-
-//newQuery set the query
-func newQuery() *queryData {
-	return &queryData{
-		condition: "1=1",
-		arguments: make([]interface{}, 0),
-		pager: &db.Pagination{
-			Skip:  0,
-			Limit: -1,
-		},
-		sorter: make([]db.Sorter, 0),
-	}
-}
-
 //NewImpl create a new impl
 func NewImpl(db *gorm.DB) db.Database {
 	return &ormImpl{
 		db: db,
-		q:  newQuery(),
 	}
 }
 
@@ -61,7 +37,6 @@ func NewImpl(db *gorm.DB) db.Database {
 type ormImpl struct {
 	locker sync.Mutex
 	db     *gorm.DB
-	q      *queryData
 }
 
 //New create a new instance
@@ -81,9 +56,9 @@ func CreateDb(setting *DBSetting) *gorm.DB {
 		panic(err)
 	}
 
-	db.DB().SetConnMaxLifetime(time.Minute * 5)
-	db.DB().SetMaxIdleConns(20)
-	db.DB().SetMaxOpenConns(500)
+	db.DB().SetConnMaxLifetime(time.Minute * 30)
+	db.DB().SetMaxIdleConns(5)
+	db.DB().SetMaxOpenConns(50)
 
 	db.LogMode(setting.ShowSQL)
 
@@ -120,34 +95,6 @@ func (p *ormImpl) AutoMigrate(tables ...interface{}) (err error) {
 	return p.db.AutoMigrate(tables...).Error
 }
 
-func (p *ormImpl) Condition(condition string, args ...interface{}) db.Database {
-	p.q.condition = condition
-	p.q.arguments = args
-	return p
-}
-
-func (p *ormImpl) Sorter(sorters ...db.Sorter) db.Database {
-	p.q.sorter = sorters
-	return p
-}
-
-func (p *ormImpl) Pager(pager *db.Pagination) db.Database {
-	p.q.pager = pager
-	return p
-}
-
-func (p *ormImpl) Model(model interface{}) db.Database {
-	p.q = newQuery()
-	p.q.model = model
-	return p
-}
-
-func (p *ormImpl) Error() (err error) {
-	err = p.q.err
-	p.q = newQuery()
-	return
-}
-
 func (p *ormImpl) Transaction(body func(db.Database) error) error {
 
 	return p.db.Transaction(func(tx *gorm.DB) error {
@@ -164,17 +111,18 @@ func (p *ormImpl) Transaction(body func(db.Database) error) error {
 // 	Sortby: "name",
 // 	Asc:    "asc",
 // }).Condition("name = ?", "c").Find(&list).Error()
-func (p *ormImpl) Find(result interface{}) db.Database {
-	//TODO sort & skip & check the result point
-	query := p.db.Model(p.q.model).Where(p.q.condition, p.q.arguments...)
-	query = query.Offset(p.q.pager.Skip).Limit(p.q.pager.Limit)
-	if len(p.q.sorter) > 0 {
-		for _, sort := range p.q.sorter {
+func (p *ormImpl) Find(q *db.QueryData, result interface{}) error {
+	query := p.db.Table(q.Table).Where(q.Condition, q.Arguments...)
+	if len(q.Fields) > 0 {
+		query = query.Select(q.Fields[0], q.Fields[1:]...)
+	}
+	query = query.Offset(q.Pager.Skip).Limit(q.Pager.Limit)
+	if len(q.Sorter) > 0 {
+		for _, sort := range q.Sorter {
 			query = query.Order(sort.Sortby + " " + sort.Asc)
 		}
 	}
-	p.q.err = query.Find(result).Error
-	return p
+	return query.Find(result).Error
 }
 
 //OK
@@ -182,38 +130,38 @@ func (p *ormImpl) Find(result interface{}) db.Database {
 // total := 0
 // err = dbclient.Model(Fake{}).Condition("name = ?", "c").Count(&total).Error()
 // total is the count
-func (p *ormImpl) Count(total *int) db.Database {
-	p.q.err = p.db.Model(p.q.model).Where(p.q.condition, p.q.arguments...).Count(total).Error
-	return p
+func (p *ormImpl) Count(q *db.BaseData, total *int) error {
+	return p.db.Table(q.Table).Where(q.Condition, q.Arguments...).Count(total).Error
 }
 
 //OK
 //Ex:
 // list := make([]*Fake, 0)
 // err = dbclient.Model(Fake{}).Condition("name = ?", "c").FindAndCount(&list, &total).Error()
-func (p *ormImpl) FindAndCount(result interface{}, total *int) db.Database {
-	p.Count(total)
-	if p.q.err != nil {
-		return p
+func (p *ormImpl) FindAndCount(q *db.QueryData, result interface{}, total *int) (err error) {
+	err = p.Count(q.BaseData, total)
+	if err != nil {
+		return
 	}
-	p.Find(result)
-	return p
+	return p.Find(q, result)
 }
 
 //OK
 //Ex:
 // one := &Fake{}
 // err = dbclient.Model(one).Condition("name = ?", "c").First(&one).Error()
-func (p *ormImpl) First(result interface{}) db.Database {
-	query := p.db.Model(p.q.model).Where(p.q.condition, p.q.arguments...)
-	query = query.Offset(p.q.pager.Skip).Limit(p.q.pager.Limit)
-	if len(p.q.sorter) > 0 {
-		for _, sort := range p.q.sorter {
+func (p *ormImpl) First(q *db.QueryData, result interface{}) error {
+	query := p.db.Table(q.Table).Where(q.Condition, q.Arguments...)
+	if len(q.Fields) > 0 {
+		query = query.Select(q.Fields[0], q.Fields[1:]...)
+	}
+	query = query.Offset(q.Pager.Skip).Limit(q.Pager.Limit)
+	if len(q.Sorter) > 0 {
+		for _, sort := range q.Sorter {
 			query = query.Order(sort.Sortby + " " + sort.Asc)
 		}
 	}
-	p.q.err = query.First(result).Error
-	return p
+	return query.First(result).Error
 }
 
 //OK
@@ -222,24 +170,18 @@ func (p *ormImpl) First(result interface{}) db.Database {
 // 	Name:  "c",
 // 	Value: 100,
 // }).Error()
-func (p *ormImpl) Create(entity interface{}) db.Database {
-	if p.q == nil {
-		p.q = newQuery()
-		p.q.model = entity
-	}
-	p.q.err = p.db.Create(entity).Error
-	return p
+func (p *ormImpl) Create(_ *db.BaseData, entity interface{}) error {
+	return p.db.Create(entity).Error
 }
 
-//OK
+//OK:
 //Ex:
 // rows := 0
 // err = dbclient.Model(Fake{}).Condition("name = ?", "c").Remove(&rows).Error()
-func (p *ormImpl) Remove(total *int) db.Database {
-	d := p.db.Where(p.q.condition, p.q.arguments...).Delete(p.q.model)
+func (p *ormImpl) Remove(q *db.BaseData, total *int) error {
+	d := p.db.Where(q.Condition, q.Arguments...).Delete(q.Model)
 	*total = (int)(d.RowsAffected)
-	p.q.err = d.Error
-	return p
+	return d.Error
 }
 
 //OK:
@@ -248,22 +190,21 @@ func (p *ormImpl) Remove(total *int) db.Database {
 // 	"value": 101,
 // }
 // err = dbclient.Model(Fake{}).Condition("name = ?", "c").Updates(fields, &total).Error()
-func (p *ormImpl) Updates(updates db.CommonMap, rows *int) db.Database {
-	q := p.db.Model(p.q.model).Where(p.q.condition, p.q.arguments...).Updates(updates)
-	p.q.err = q.Error
-	*rows = (int)(q.RowsAffected)
-	return p
+func (p *ormImpl) Updates(q *db.BaseData, updates db.CommonMap, rows *int) (err error) {
+	d := p.db.Table(q.Table).Where(q.Condition, q.Arguments...).Updates(updates)
+	err = d.Error
+	q.AffectedRows = d.RowsAffected
+	*rows = (int)(d.RowsAffected)
+	return
 }
 
 //OK
 //Ex:
 //err = dbclient.Execute(`delete from fake where id = 11`, &rows).Error()
-func (p *ormImpl) Execute(sql string, rows *int) db.Database {
+func (p *ormImpl) Execute(sql string, rows *int) (err error) {
 	d := p.db.Exec(sql)
 	*rows = (int)(d.RowsAffected)
-	p.q = newQuery()
-	p.q.err = d.Error
-	return p
+	return d.Error
 }
 
 //OK:
@@ -271,15 +212,15 @@ func (p *ormImpl) Execute(sql string, rows *int) db.Database {
 //Ex:
 // raw := &countBody{}
 // err = dbclient.Raw(`select count(1) as c from fake where id < 10`, raw).Error()
-func (p *ormImpl) Raw(sql string, result interface{}) db.Database {
+func (p *ormImpl) Raw(sql string, result interface{}) (err error) {
 	raw := p.db.Raw(sql)
 	if raw.Error != nil {
-		p.q.err = raw.Error
-		return p
+		err = raw.Error
+		return
 	}
-	p.q.err = raw.Scan(result).Error
+	err = raw.Scan(result).Error
 
-	return p
+	return
 }
 
 //OK should be a struct
@@ -290,12 +231,11 @@ func (p *ormImpl) Raw(sql string, result interface{}) db.Database {
 // }, func(one interface{}) {
 // 	raws = append(raws, one.(*countBody))
 // }).Error()
-func (p *ormImpl) Raws(sql string, iterator func() interface{}, appender func(interface{})) db.Database {
+func (p *ormImpl) Raws(sql string, iterator func() interface{}, appender func(interface{})) (err error) {
 	d := p.db.Raw(sql)
 	raws, err := d.Rows()
 	if err != nil {
-		p.q.err = err
-		return p
+		return err
 	}
 	defer raws.Close()
 	for raws.Next() {
@@ -304,5 +244,5 @@ func (p *ormImpl) Raws(sql string, iterator func() interface{}, appender func(in
 		appender(one)
 	}
 
-	return p
+	return nil
 }

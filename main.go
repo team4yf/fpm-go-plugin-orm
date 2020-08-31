@@ -2,8 +2,9 @@ package main
 
 import (
 	"github.com/jinzhu/gorm"
-	_ "github.com/team4yf/fpm-go-plugin-orm-pg/plugins/pg"
+	_ "github.com/team4yf/fpm-go-plugin-orm/plugins/pg"
 	"github.com/team4yf/yf-fpm-server-go/fpm"
+	"github.com/team4yf/yf-fpm-server-go/pkg/db"
 )
 
 //Fake 对应的实体类
@@ -21,29 +22,20 @@ func main() {
 
 	app := fpm.New()
 	app.Init()
-	go func() {
-		dbclient, _ := app.GetDatabase("pg")
-		list := make([]*Fake, 0)
-		total := 0
-		_ = dbclient.Model(Fake{}).Condition("name = ?", "c").FindAndCount(&list, &total).Error()
-		app.Logger.Debugf("data: %v", list)
-	}()
-
-	go func() {
-		dbclient, _ := app.GetDatabase("pg")
-		list := make([]*Fake, 0)
-		total := 0
-		_ = dbclient.Model(Fake{}).Condition("name = ?", "b").FindAndCount(&list, &total).Error()
-		app.Logger.Debugf("data: %v", list)
-	}()
-
-	go func() {
-		dbclient, _ := app.GetDatabase("pg")
-		list := make([]*Fake, 0)
-		total := 0
-		_ = dbclient.Model(Fake{}).Condition("name = ?", "d").FindAndCount(&list, &total).Error()
-		app.Logger.Debugf("data: %v", list)
-	}()
+	dbclient, _ := app.GetDatabase("pg")
+	for i := 0; i < 1000; i++ {
+		go func() {
+			q := db.NewQuery()
+			q.AddSorter(db.Sorter{
+				Sortby: "name",
+				Asc:    "asc",
+			}).SetTable("fake").SetCondition("name = ?", "c")
+			list := make([]*Fake, 0)
+			total := 0
+			_ = dbclient.FindAndCount(q, &list, &total)
+			app.Logger.Debugf("data: %v", list)
+		}()
+	}
 
 	app.Run()
 

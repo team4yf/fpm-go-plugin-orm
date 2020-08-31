@@ -16,9 +16,9 @@ func init() {
 			panic(err)
 		}
 		dbInstance := plugins.New(option)
-
+		dbclient := plugins.NewImpl(dbInstance)
 		app.SetDatabase("pg", func() db.Database {
-			return plugins.NewImpl(dbInstance)
+			return dbclient
 		})
 	})
 }
