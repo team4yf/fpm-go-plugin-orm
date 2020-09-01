@@ -231,7 +231,7 @@ func TestCreateBiz(t *testing.T) {
 		"table": "fake",
 		"data": map[string]interface{}{
 			"name":  "ff",
-			"value": int(100),
+			"value": 100,
 		},
 	})
 

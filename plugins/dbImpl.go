@@ -276,11 +276,17 @@ func (p *ormImpl) First(q *db.QueryData, result interface{}) (err error) {
 // 	Value: 100,
 // }).Error()
 func (p *ormImpl) Create(q *db.BaseData, entity interface{}) error {
-	// switch entity.(type) {
-	// case *map[string]interface{}:
-	// 	return nil
-	// }
-	return p.db.Table(q.Table).Create(entity).Error
+	d := p.db.Table(q.Table)
+	var e map[string]interface{}
+	switch entity.(type) {
+	case *map[string]interface{}:
+		one := entity.(*map[string]interface{})
+		e = *one
+		return nil
+	case map[string]interface{}:
+		e = entity.(map[string]interface{})
+	}
+	return d.Create(e).Error
 }
 
 //OK:

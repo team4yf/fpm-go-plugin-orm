@@ -4,7 +4,6 @@ import (
 	"github.com/team4yf/fpm-go-plugin-orm/plugins"
 	"github.com/team4yf/yf-fpm-server-go/fpm"
 	"github.com/team4yf/yf-fpm-server-go/pkg/db"
-	//import the postgress
 )
 
 type queryReq struct {
@@ -99,7 +98,7 @@ func init() {
 			q := db.NewQuery()
 			q.SetTable(queryReq.Table)
 			err = dbclient.Create(q.BaseData, queryReq.Data)
-			data = &queryReq.Data
+			data = 1
 			return
 		}
 

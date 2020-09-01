@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/google/uuid v1.1.2 // indirect
+	github.com/json-iterator/go v1.1.6
 	github.com/magiconair/properties v1.8.2 // indirect
 	github.com/stretchr/testify v1.5.1
 	github.com/team4yf/yf-fpm-server-go v0.1.18
