@@ -8,15 +8,14 @@ import (
 )
 
 type queryReq struct {
-	Table     string `json:"table,omitempty"`
-	Condition string `json:"condition,omitempty"`
-	Skip      int    `json:"skip,omitempty"`
-	Limit     int    `json:"limit,omitempty"`
-	ID        int64  `json:"id,omitempty"`
-	Sort      string `json:"sort,omitempty"`
+	Table     string      `json:"table,omitempty"`
+	Condition string      `json:"condition,omitempty"`
+	Skip      int         `json:"skip,omitempty"`
+	Limit     int         `json:"limit,omitempty"`
+	Data      interface{} `json:"data,omitempty"`
+	ID        int64       `json:"id,omitempty"`
+	Sort      string      `json:"sort,omitempty"`
 }
-
-type dataRow map[string]interface{}
 
 func init() {
 	fpm.Register(func(app *fpm.Fpm) {
@@ -47,9 +46,30 @@ func init() {
 				Skip:  queryReq.Skip,
 				Limit: queryReq.Limit,
 			})
-			list := make([]*dataRow, 0)
+			q.SetCondition(queryReq.Condition)
+			list := make([]map[string]interface{}, 0)
 			err = dbclient.Find(q, &list)
 			data = &list
+			return
+		}
+
+		bizModule["first"] = func(param *fpm.BizParam) (data interface{}, err error) {
+			queryReq := queryReq{}
+			err = param.Convert(&queryReq)
+			if err != nil {
+				return
+			}
+
+			q := db.NewQuery()
+			q.SetTable(queryReq.Table)
+			q.SetPager(&db.Pagination{
+				Skip:  queryReq.Skip,
+				Limit: queryReq.Limit,
+			})
+			q.SetCondition(queryReq.Condition)
+			one := make(map[string]interface{})
+			err = dbclient.First(q, &one)
+			data = &one
 			return
 		}
 
@@ -66,6 +86,20 @@ func init() {
 			var rows int64
 			err = dbclient.Remove(q.BaseData, &rows)
 			data = rows
+			return
+		}
+
+		bizModule["create"] = func(param *fpm.BizParam) (data interface{}, err error) {
+			queryReq := queryReq{}
+			err = param.Convert(&queryReq)
+			if err != nil {
+				return
+			}
+
+			q := db.NewQuery()
+			q.SetTable(queryReq.Table)
+			err = dbclient.Create(q.BaseData, queryReq.Data)
+			data = &queryReq.Data
 			return
 		}
 

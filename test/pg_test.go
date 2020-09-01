@@ -153,7 +153,7 @@ func TestTran(t *testing.T) {
 	assert.NotNil(t, err, "should err")
 }
 
-func TestBiz(t *testing.T) {
+func TestFindBiz(t *testing.T) {
 	app := fpm.New()
 
 	app.Init()
@@ -200,6 +200,39 @@ func TestRemoveBiz(t *testing.T) {
 	data, err := app.Execute("common.remove", &fpm.BizParam{
 		"table":     "fake",
 		"condition": "name = 'c'",
+	})
+
+	fmt.Printf("data: %v", data)
+	assert.Nil(t, err, "should not error")
+
+}
+
+func TestFirstBiz(t *testing.T) {
+	app := fpm.New()
+
+	app.Init()
+
+	data, err := app.Execute("common.first", &fpm.BizParam{
+		"table":     "fake",
+		"condition": "name = 'c'",
+	})
+
+	fmt.Printf("data: %v", data)
+	assert.Nil(t, err, "should not error")
+
+}
+
+func TestCreateBiz(t *testing.T) {
+	app := fpm.New()
+
+	app.Init()
+
+	data, err := app.Execute("common.create", &fpm.BizParam{
+		"table": "fake",
+		"data": map[string]interface{}{
+			"name":  "ff",
+			"value": int(100),
+		},
 	})
 
 	fmt.Printf("data: %v", data)

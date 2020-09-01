@@ -133,7 +133,20 @@ func (p *ormImpl) Transaction(body func(db.Database) error) error {
 // 	Sortby: "name",
 // 	Asc:    "asc",
 // }).Condition("name = ?", "c").Find(&list).Error()
-func (p *ormImpl) Find(q *db.QueryData, result interface{}) error {
+func (p *ormImpl) Find(q *db.QueryData, result interface{}) (err error) {
+
+	switch result.(type) {
+	case *[]map[string]interface{}:
+		data, e := p.FindObject(q)
+		list := result.(*[]map[string]interface{})
+		*list = append(*list, data...)
+		if e != nil {
+			return e
+		}
+
+		return
+
+	}
 	query := p.db.Table(q.Table).Where(q.Condition, q.Arguments...)
 	if len(q.Fields) > 0 {
 		query = query.Select(q.Fields[0], q.Fields[1:]...)
@@ -145,6 +158,46 @@ func (p *ormImpl) Find(q *db.QueryData, result interface{}) error {
 		}
 	}
 	return query.Find(result).Error
+
+}
+
+func (p *ormImpl) FindObject(q *db.QueryData) (data []map[string]interface{}, err error) {
+	query := p.db.Table(q.Table).Where(q.Condition, q.Arguments...)
+	if len(q.Fields) > 0 {
+		query = query.Select(q.Fields[0], q.Fields[1:]...)
+	}
+	query = query.Offset(q.Pager.Skip).Limit(q.Pager.Limit)
+	if len(q.Sorter) > 0 {
+		for _, sort := range q.Sorter {
+			query = query.Order(sort.Sortby + " " + sort.Asc)
+		}
+	}
+	rows, err := query.Rows()
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+	data = make([]map[string]interface{}, 0)
+	cols, _ := rows.Columns()
+
+	for rows.Next() {
+		columns := make([]interface{}, len(cols))
+		columnPointers := make([]interface{}, len(cols))
+		for i := range columns {
+			columnPointers[i] = &columns[i]
+		}
+		if err = rows.Scan(columnPointers...); err != nil {
+			return
+		}
+		m := make(map[string]interface{})
+		for i, colName := range cols {
+			val := columnPointers[i].(*interface{})
+			m[colName] = *val
+		}
+		data = append(data, m)
+
+	}
+	return
 }
 
 //OK
@@ -172,7 +225,7 @@ func (p *ormImpl) FindAndCount(q *db.QueryData, result interface{}, total *int64
 //Ex:
 // one := &Fake{}
 // err = dbclient.Model(one).Condition("name = ?", "c").First(&one).Error()
-func (p *ormImpl) First(q *db.QueryData, result interface{}) error {
+func (p *ormImpl) First(q *db.QueryData, result interface{}) (err error) {
 	query := p.db.Table(q.Table).Where(q.Condition, q.Arguments...)
 	if len(q.Fields) > 0 {
 		query = query.Select(q.Fields[0], q.Fields[1:]...)
@@ -183,6 +236,36 @@ func (p *ormImpl) First(q *db.QueryData, result interface{}) error {
 			query = query.Order(sort.Sortby + " " + sort.Asc)
 		}
 	}
+	switch result.(type) {
+	case *map[string]interface{}:
+		rows, e := query.Rows()
+		if e != nil {
+			return e
+		}
+		defer rows.Close()
+
+		cols, _ := rows.Columns()
+
+		if rows.Next() {
+			columns := make([]interface{}, len(cols))
+			columnPointers := make([]interface{}, len(cols))
+			for i := range columns {
+				columnPointers[i] = &columns[i]
+			}
+			if err = rows.Scan(columnPointers...); err != nil {
+				return
+			}
+			m := make(map[string]interface{})
+			for i, colName := range cols {
+				val := columnPointers[i].(*interface{})
+				m[colName] = *val
+			}
+			p := result.(*map[string]interface{})
+			*p = m
+		}
+		return nil
+
+	}
 	return query.First(result).Error
 }
 
@@ -192,8 +275,12 @@ func (p *ormImpl) First(q *db.QueryData, result interface{}) error {
 // 	Name:  "c",
 // 	Value: 100,
 // }).Error()
-func (p *ormImpl) Create(_ *db.BaseData, entity interface{}) error {
-	return p.db.Create(entity).Error
+func (p *ormImpl) Create(q *db.BaseData, entity interface{}) error {
+	// switch entity.(type) {
+	// case *map[string]interface{}:
+	// 	return nil
+	// }
+	return p.db.Table(q.Table).Create(entity).Error
 }
 
 //OK:
