@@ -42,7 +42,7 @@ func TestPG(t *testing.T) {
 	//Test Remove
 	rows = 0
 	q := db.NewQuery()
-	q.SetModel(Fake{}).SetCondition("name = ?", "c")
+	q.SetTable("fake").SetCondition("name = ?", "b")
 	err = dbclient.Remove(q.BaseData, &rows)
 	assert.Nil(t, err, "should nil err")
 	assert.Equal(t, true, rows >= 0, "should gt 0")
@@ -108,7 +108,9 @@ func TestPG(t *testing.T) {
 	//Test Updates
 	fields := db.CommonMap{
 		"value": 101,
+		"name":  "b",
 	}
+	q.SetCondition("name=?", "c")
 	err = dbclient.Updates(q.BaseData, fields, &total)
 	assert.Nil(t, err, "should nil err")
 	assert.Equal(t, true, total > 0, "should gt 0")

@@ -200,10 +200,16 @@ func (p *ormImpl) Create(_ *db.BaseData, entity interface{}) error {
 //Ex:
 // rows := 0
 // err = dbclient.Model(Fake{}).Condition("name = ?", "c").Remove(&rows).Error()
-func (p *ormImpl) Remove(q *db.BaseData, total *int64) error {
-	d := p.db.Where(q.Condition, q.Arguments...).Delete(q.Model)
-	*total = d.RowsAffected
-	return d.Error
+func (p *ormImpl) Remove(q *db.BaseData, total *int64) (err error) {
+
+	raw := p.db.Raw(fmt.Sprintf("UPDATE %s SET deleted_at=? WHERE %s", q.Table, q.Condition), append([]interface{}{time.Now()}, q.Arguments...)...)
+	if raw.Error != nil {
+		err = raw.Error
+		return
+	}
+	err = raw.Scan(total).Error
+
+	return
 }
 
 //OK:
@@ -213,10 +219,25 @@ func (p *ormImpl) Remove(q *db.BaseData, total *int64) error {
 // }
 // err = dbclient.Model(Fake{}).Condition("name = ?", "c").Updates(fields, &total).Error()
 func (p *ormImpl) Updates(q *db.BaseData, updates db.CommonMap, rows *int64) (err error) {
-	d := p.db.Table(q.Table).Where(q.Condition, q.Arguments...).Updates(updates)
-	err = d.Error
-	q.AffectedRows = d.RowsAffected
-	*rows = d.RowsAffected
+	keyArr := make([]string, 0)
+	valArr := make([]interface{}, 0)
+	for k, v := range updates {
+		if k == "" {
+			continue
+		}
+		keyArr = append(keyArr, k+" = ?")
+		valArr = append(valArr, v)
+	}
+	sql := fmt.Sprintf("UPDATE %s SET updated_at=?, %s WHERE deleted_at is not null and ( %s )", q.Table, strings.Join(keyArr[:], ","), q.Condition)
+	params := append([]interface{}{time.Now()}, valArr...)
+	params = append(params, q.Arguments...)
+	raw := p.db.Raw(sql, params...)
+	if raw.Error != nil {
+		err = raw.Error
+		return
+	}
+	err = raw.Scan(rows).Error
+
 	return
 }
 
