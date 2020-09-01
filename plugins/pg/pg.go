@@ -47,9 +47,25 @@ func init() {
 				Skip:  queryReq.Skip,
 				Limit: queryReq.Limit,
 			})
-			list := make([]dataRow, 0)
+			list := make([]*dataRow, 0)
 			err = dbclient.Find(q, &list)
 			data = &list
+			return
+		}
+
+		bizModule["remove"] = func(param *fpm.BizParam) (data interface{}, err error) {
+			queryReq := queryReq{}
+			err = param.Convert(&queryReq)
+			if err != nil {
+				return
+			}
+
+			q := db.NewQuery()
+			q.SetTable(queryReq.Table)
+			q.SetCondition(queryReq.Condition)
+			var rows int64
+			err = dbclient.Remove(q.BaseData, &rows)
+			data = rows
 			return
 		}
 

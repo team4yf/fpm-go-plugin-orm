@@ -191,3 +191,18 @@ func TestBiz(t *testing.T) {
 	assert.Nil(t, err, "should not error")
 
 }
+
+func TestRemoveBiz(t *testing.T) {
+	app := fpm.New()
+
+	app.Init()
+
+	data, err := app.Execute("common.remove", &fpm.BizParam{
+		"table":     "fake",
+		"condition": "name = 'c'",
+	})
+
+	fmt.Printf("data: %v", data)
+	assert.Nil(t, err, "should not error")
+
+}
