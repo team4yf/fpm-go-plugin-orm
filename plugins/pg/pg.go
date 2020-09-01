@@ -4,9 +4,7 @@ import (
 	"github.com/team4yf/fpm-go-plugin-orm/plugins"
 	"github.com/team4yf/yf-fpm-server-go/fpm"
 	"github.com/team4yf/yf-fpm-server-go/pkg/db"
-
 	//import the postgress
-	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
 type queryReq struct {
@@ -17,6 +15,8 @@ type queryReq struct {
 	ID        int64  `json:"id,omitempty"`
 	Sort      string `json:"sort,omitempty"`
 }
+
+type dataRow map[string]interface{}
 
 func init() {
 	fpm.Register(func(app *fpm.Fpm) {
@@ -35,19 +35,21 @@ func init() {
 		// 1. 'find', 'first', 'create', 'update', 'remove', 'clear', 'get', 'count', 'findAndCount'
 
 		bizModule["find"] = func(param *fpm.BizParam) (data interface{}, err error) {
-			// queryReq := queryReq{}
-			// err = param.Convert(&queryReq)
-			// if err != nil {
-			// 	return
-			// }
+			queryReq := queryReq{}
+			err = param.Convert(&queryReq)
+			if err != nil {
+				return
+			}
 
-			// q := db.NewQuery()
-			// q.SetTable(queryReq.Table)
-			// q.SetPager(db.Pagination{
-			// 	Skip:  queryReq.Skip,
-			// 	Limit: queryReq.Limit,
-			// })
-			// err = dbclient.First(q, &one)
+			q := db.NewQuery()
+			q.SetTable(queryReq.Table)
+			q.SetPager(&db.Pagination{
+				Skip:  queryReq.Skip,
+				Limit: queryReq.Limit,
+			})
+			list := make([]dataRow, 0)
+			err = dbclient.Find(q, &list)
+			data = &list
 			return
 		}
 

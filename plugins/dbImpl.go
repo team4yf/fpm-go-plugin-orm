@@ -2,12 +2,16 @@ package plugins
 
 import (
 	"fmt"
+	"log"
+	"os"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/jinzhu/gorm"
 	"github.com/team4yf/yf-fpm-server-go/pkg/db"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 var (
@@ -51,16 +55,34 @@ func New(setting *DBSetting) *gorm.DB {
 func CreateDb(setting *DBSetting) *gorm.DB {
 	//use the config for the app
 	dsn := getDbEngineDSN(setting)
-	db, err := gorm.Open(setting.Engine, dsn)
+	var logConf logger.Config
+	if setting.ShowSQL {
+		logConf = logger.Config{
+			SlowThreshold: time.Second, // Slow SQL threshold
+			LogLevel:      logger.Info, // Log level
+			Colorful:      false,       // Disable color
+		}
+	} else {
+		logConf = logger.Config{
+			SlowThreshold: time.Second,   // Slow SQL threshold
+			LogLevel:      logger.Silent, // Log level
+			Colorful:      false,         // Disable color
+		}
+	}
+	newLogger := logger.New(
+		log.New(os.Stdout, "\r\n", log.LstdFlags), // io writer
+		logConf,
+	)
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		Logger: newLogger,
+	})
 	if err != nil {
 		panic(err)
 	}
-
-	db.DB().SetConnMaxLifetime(time.Minute * 30)
-	db.DB().SetMaxIdleConns(5)
-	db.DB().SetMaxOpenConns(50)
-
-	db.LogMode(setting.ShowSQL)
+	sqlDB, err := db.DB()
+	sqlDB.SetConnMaxLifetime(time.Minute * 30)
+	sqlDB.SetMaxIdleConns(5)
+	sqlDB.SetMaxOpenConns(50)
 
 	return db
 }
@@ -92,7 +114,7 @@ func getDbEngineDSN(db *DBSetting) string {
 
 //AutoMigrate migrate table from the model
 func (p *ormImpl) AutoMigrate(tables ...interface{}) (err error) {
-	return p.db.AutoMigrate(tables...).Error
+	return p.db.AutoMigrate(tables...)
 }
 
 func (p *ormImpl) Transaction(body func(db.Database) error) error {
@@ -130,7 +152,7 @@ func (p *ormImpl) Find(q *db.QueryData, result interface{}) error {
 // total := 0
 // err = dbclient.Model(Fake{}).Condition("name = ?", "c").Count(&total).Error()
 // total is the count
-func (p *ormImpl) Count(q *db.BaseData, total *int) error {
+func (p *ormImpl) Count(q *db.BaseData, total *int64) error {
 	return p.db.Table(q.Table).Where(q.Condition, q.Arguments...).Count(total).Error
 }
 
@@ -138,7 +160,7 @@ func (p *ormImpl) Count(q *db.BaseData, total *int) error {
 //Ex:
 // list := make([]*Fake, 0)
 // err = dbclient.Model(Fake{}).Condition("name = ?", "c").FindAndCount(&list, &total).Error()
-func (p *ormImpl) FindAndCount(q *db.QueryData, result interface{}, total *int) (err error) {
+func (p *ormImpl) FindAndCount(q *db.QueryData, result interface{}, total *int64) (err error) {
 	err = p.Count(q.BaseData, total)
 	if err != nil {
 		return
@@ -178,9 +200,9 @@ func (p *ormImpl) Create(_ *db.BaseData, entity interface{}) error {
 //Ex:
 // rows := 0
 // err = dbclient.Model(Fake{}).Condition("name = ?", "c").Remove(&rows).Error()
-func (p *ormImpl) Remove(q *db.BaseData, total *int) error {
+func (p *ormImpl) Remove(q *db.BaseData, total *int64) error {
 	d := p.db.Where(q.Condition, q.Arguments...).Delete(q.Model)
-	*total = (int)(d.RowsAffected)
+	*total = d.RowsAffected
 	return d.Error
 }
 
@@ -190,20 +212,20 @@ func (p *ormImpl) Remove(q *db.BaseData, total *int) error {
 // 	"value": 101,
 // }
 // err = dbclient.Model(Fake{}).Condition("name = ?", "c").Updates(fields, &total).Error()
-func (p *ormImpl) Updates(q *db.BaseData, updates db.CommonMap, rows *int) (err error) {
+func (p *ormImpl) Updates(q *db.BaseData, updates db.CommonMap, rows *int64) (err error) {
 	d := p.db.Table(q.Table).Where(q.Condition, q.Arguments...).Updates(updates)
 	err = d.Error
 	q.AffectedRows = d.RowsAffected
-	*rows = (int)(d.RowsAffected)
+	*rows = d.RowsAffected
 	return
 }
 
 //OK
 //Ex:
 //err = dbclient.Execute(`delete from fake where id = 11`, &rows).Error()
-func (p *ormImpl) Execute(sql string, rows *int) (err error) {
+func (p *ormImpl) Execute(sql string, rows *int64) (err error) {
 	d := p.db.Exec(sql)
-	*rows = (int)(d.RowsAffected)
+	*rows = d.RowsAffected
 	return d.Error
 }
 

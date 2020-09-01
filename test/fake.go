@@ -1,7 +1,7 @@
 package fake
 
 import (
-	"github.com/jinzhu/gorm"
+	"gorm.io/gorm"
 )
 
 //Fake 对应的实体类
