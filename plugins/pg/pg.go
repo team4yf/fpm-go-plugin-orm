@@ -9,6 +9,7 @@ import (
 type queryReq struct {
 	Table     string      `json:"table,omitempty"`
 	Condition string      `json:"condition,omitempty"`
+	Fields    string      `json:"fields,omitempty"`
 	Skip      int         `json:"skip,omitempty"`
 	Limit     int         `json:"limit,omitempty"`
 	Data      interface{} `json:"data,omitempty"`
@@ -16,6 +17,37 @@ type queryReq struct {
 	Sort      string      `json:"sort,omitempty"`
 }
 
+func parseQuery(req *queryReq) *db.QueryData {
+	q := db.NewQuery()
+	q.SetTable(req.Table)
+	if req.Limit != 0 {
+		q.SetPager(&db.Pagination{
+			Skip:  req.Skip,
+			Limit: req.Limit,
+		})
+	}
+
+	if req.Fields != "" {
+		//TODO change the data  type
+		// q.AddFields(strings.Split(queryReq.Fields, ","))
+	}
+	q.SetCondition(req.Condition)
+
+	if req.Sort != "" {
+
+		l := len(req.Sort)
+		asc := "asc"
+		if req.Sort[l-1:] == "-" {
+			asc = "desc"
+		}
+		q.AddSorter(db.Sorter{
+			Sortby: req.Sort[0 : l-1],
+			Asc:    asc,
+		})
+	}
+
+	return q
+}
 func init() {
 	fpm.Register(func(app *fpm.Fpm) {
 		option := &plugins.DBSetting{}
@@ -30,8 +62,9 @@ func init() {
 		bizModule := make(fpm.BizModule, 0)
 
 		// support:
-		// 1. 'find', 'first', 'create', 'update', 'remove', 'clear', 'get', 'count', 'findAndCount'
+		// 1. x 'find', x 'first', 'create', 'update', x 'remove', x 'clear', x 'get', x 'count', x 'findAndCount'
 
+		//TODO: sorter
 		bizModule["find"] = func(param *fpm.BizParam) (data interface{}, err error) {
 			queryReq := queryReq{}
 			err = param.Convert(&queryReq)
@@ -39,16 +72,29 @@ func init() {
 				return
 			}
 
-			q := db.NewQuery()
-			q.SetTable(queryReq.Table)
-			q.SetPager(&db.Pagination{
-				Skip:  queryReq.Skip,
-				Limit: queryReq.Limit,
-			})
-			q.SetCondition(queryReq.Condition)
+			q := parseQuery(&queryReq)
 			list := make([]map[string]interface{}, 0)
 			err = dbclient.Find(q, &list)
 			data = &list
+			return
+		}
+
+		bizModule["findAndCount"] = func(param *fpm.BizParam) (data interface{}, err error) {
+			queryReq := queryReq{}
+			err = param.Convert(&queryReq)
+			if err != nil {
+				return
+			}
+
+			q := parseQuery(&queryReq)
+			list := make([]map[string]interface{}, 0)
+			var total int64
+			err = dbclient.FindAndCount(q, &list, &total)
+
+			data = map[string]interface{}{
+				"total": total,
+				"rows":  list,
+			}
 			return
 		}
 
