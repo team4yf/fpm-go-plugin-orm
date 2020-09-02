@@ -1,6 +1,8 @@
 package pg
 
 import (
+	"strings"
+
 	"github.com/team4yf/fpm-go-plugin-orm/plugins"
 	"github.com/team4yf/yf-fpm-server-go/fpm"
 	"github.com/team4yf/yf-fpm-server-go/pkg/db"
@@ -12,9 +14,19 @@ type queryReq struct {
 	Fields    string      `json:"fields,omitempty"`
 	Skip      int         `json:"skip,omitempty"`
 	Limit     int         `json:"limit,omitempty"`
-	Data      interface{} `json:"data,omitempty"`
+	Data      interface{} `json:"row,omitempty"`
 	ID        int64       `json:"id,omitempty"`
 	Sort      string      `json:"sort,omitempty"`
+}
+
+func parseQueryFromBizParam(param *fpm.BizParam) (q *db.QueryData, err error) {
+	queryReq := queryReq{}
+	if err = param.Convert(&queryReq); err != nil {
+		return
+	}
+
+	q = parseQuery(&queryReq)
+	return
 }
 
 func parseQuery(req *queryReq) *db.QueryData {
@@ -28,20 +40,32 @@ func parseQuery(req *queryReq) *db.QueryData {
 	}
 
 	if req.Fields != "" {
-		//TODO change the data  type
-		// q.AddFields(strings.Split(queryReq.Fields, ","))
+		q.AddFields((strings.Split(req.Fields, ","))...)
 	}
-	q.SetCondition(req.Condition)
+	if req.Condition != "" {
+		q.SetCondition(req.Condition)
+	}
+	if req.ID != 0 {
+		q.SetCondition("id = ?", req.ID)
+	}
 
 	if req.Sort != "" {
 
 		l := len(req.Sort)
 		asc := "asc"
-		if req.Sort[l-1:] == "-" {
+		sortBy := "id"
+		lastLetter := req.Sort[l-1:]
+		if lastLetter == "-" {
 			asc = "desc"
 		}
+
+		if lastLetter != "-" && lastLetter != "+" {
+			sortBy = req.Sort
+		} else {
+			sortBy = req.Sort[0 : l-1]
+		}
 		q.AddSorter(db.Sorter{
-			Sortby: req.Sort[0 : l-1],
+			Sortby: sortBy,
 			Asc:    asc,
 		})
 	}
@@ -64,15 +88,11 @@ func init() {
 		// support:
 		// 1. x 'find', x 'first', 'create', 'update', x 'remove', x 'clear', x 'get', x 'count', x 'findAndCount'
 
-		//TODO: sorter
 		bizModule["find"] = func(param *fpm.BizParam) (data interface{}, err error) {
-			queryReq := queryReq{}
-			err = param.Convert(&queryReq)
+			q, err := parseQueryFromBizParam(param)
 			if err != nil {
-				return
+				return nil, err
 			}
-
-			q := parseQuery(&queryReq)
 			list := make([]map[string]interface{}, 0)
 			err = dbclient.Find(q, &list)
 			data = &list
@@ -80,38 +100,50 @@ func init() {
 		}
 
 		bizModule["findAndCount"] = func(param *fpm.BizParam) (data interface{}, err error) {
-			queryReq := queryReq{}
-			err = param.Convert(&queryReq)
+			q, err := parseQueryFromBizParam(param)
 			if err != nil {
-				return
+				return nil, err
 			}
-
-			q := parseQuery(&queryReq)
 			list := make([]map[string]interface{}, 0)
 			var total int64
 			err = dbclient.FindAndCount(q, &list, &total)
 
 			data = map[string]interface{}{
-				"total": total,
+				"count": total,
 				"rows":  list,
 			}
 			return
 		}
 
-		bizModule["first"] = func(param *fpm.BizParam) (data interface{}, err error) {
-			queryReq := queryReq{}
-			err = param.Convert(&queryReq)
+		bizModule["count"] = func(param *fpm.BizParam) (data interface{}, err error) {
+			q, err := parseQueryFromBizParam(param)
 			if err != nil {
+				return nil, err
+			}
+			var total int64
+			err = dbclient.Count(q.BaseData, &total)
+			data = total
+			return
+		}
+
+		bizModule["first"] = func(param *fpm.BizParam) (data interface{}, err error) {
+			q, err := parseQueryFromBizParam(param)
+			if err != nil {
+				return nil, err
+			}
+			one := make(map[string]interface{})
+			err = dbclient.First(q, &one)
+			data = &one
+			return
+		}
+
+		bizModule["get"] = func(param *fpm.BizParam) (data interface{}, err error) {
+			req := queryReq{}
+			if err = param.Convert(&req); err != nil {
 				return
 			}
-
-			q := db.NewQuery()
-			q.SetTable(queryReq.Table)
-			q.SetPager(&db.Pagination{
-				Skip:  queryReq.Skip,
-				Limit: queryReq.Limit,
-			})
-			q.SetCondition(queryReq.Condition)
+			q := parseQuery(&req)
+			q.SetCondition("id = ?", req.ID)
 			one := make(map[string]interface{})
 			err = dbclient.First(q, &one)
 			data = &one
@@ -119,15 +151,24 @@ func init() {
 		}
 
 		bizModule["remove"] = func(param *fpm.BizParam) (data interface{}, err error) {
-			queryReq := queryReq{}
-			err = param.Convert(&queryReq)
-			if err != nil {
+			req := queryReq{}
+			if err = param.Convert(&req); err != nil {
 				return
 			}
 
-			q := db.NewQuery()
-			q.SetTable(queryReq.Table)
-			q.SetCondition(queryReq.Condition)
+			q := parseQuery(&req)
+			q.SetCondition("id = ?", req.ID)
+			var rows int64
+			err = dbclient.Remove(q.BaseData, &rows)
+			data = rows
+			return
+		}
+
+		bizModule["clear"] = func(param *fpm.BizParam) (data interface{}, err error) {
+			q, err := parseQueryFromBizParam(param)
+			if err != nil {
+				return nil, err
+			}
 			var rows int64
 			err = dbclient.Remove(q.BaseData, &rows)
 			data = rows
@@ -135,16 +176,34 @@ func init() {
 		}
 
 		bizModule["create"] = func(param *fpm.BizParam) (data interface{}, err error) {
-			queryReq := queryReq{}
-			err = param.Convert(&queryReq)
-			if err != nil {
+			req := queryReq{}
+			if err = param.Convert(&req); err != nil {
 				return
 			}
 
-			q := db.NewQuery()
-			q.SetTable(queryReq.Table)
-			err = dbclient.Create(q.BaseData, queryReq.Data)
+			q := parseQuery(&req)
+			q.SetTable(req.Table)
+			err = dbclient.Create(q.BaseData, req.Data)
 			data = 1
+			return
+		}
+
+		bizModule["update"] = func(param *fpm.BizParam) (data interface{}, err error) {
+			req := queryReq{}
+			if err = param.Convert(&req); err != nil {
+				return
+			}
+
+			q := parseQuery(&req)
+			q.SetTable(req.Table)
+			q.SetCondition(req.Condition)
+			var rows int64
+			cm := db.CommonMap{}
+			for k, v := range (req.Data).(map[string]interface{}) {
+				cm[k] = v
+			}
+			err = dbclient.Updates(q.BaseData, cm, &rows)
+			data = rows
 			return
 		}
 

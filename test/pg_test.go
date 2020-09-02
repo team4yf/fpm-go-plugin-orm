@@ -173,7 +173,9 @@ func TestFindBiz(t *testing.T) {
 	assert.Nil(t, err, "should not error")
 	assert.Equal(t, true, rows >= 0, "should gt 0")
 	//Test Create
-	err = dbclient.Create(nil, &Fake{
+	q := db.NewQuery()
+	q.SetTable("fake")
+	err = dbclient.Create(q.BaseData, &Fake{
 		Name:  "c",
 		Value: 100,
 	})
@@ -184,7 +186,7 @@ func TestFindBiz(t *testing.T) {
 		"condition": "1 = 1",
 		"skip":      -1,
 		"limit":     -1,
-		"sort":      "id",
+		"sort":      "id-",
 	})
 
 	fmt.Printf("data: %v", data)
@@ -198,8 +200,8 @@ func TestRemoveBiz(t *testing.T) {
 	app.Init()
 
 	data, err := app.Execute("common.remove", &fpm.BizParam{
-		"table":     "fake",
-		"condition": "name = 'c'",
+		"table": "fake",
+		"id":    107,
 	})
 
 	fmt.Printf("data: %v", data)
@@ -229,9 +231,28 @@ func TestCreateBiz(t *testing.T) {
 
 	data, err := app.Execute("common.create", &fpm.BizParam{
 		"table": "fake",
-		"data": map[string]interface{}{
+		"row": map[string]interface{}{
 			"name":  "ff",
 			"value": 100,
+		},
+	})
+
+	fmt.Printf("data: %v", data)
+	assert.Nil(t, err, "should not error")
+
+}
+
+func TestUpdateBiz(t *testing.T) {
+	app := fpm.New()
+
+	app.Init()
+
+	data, err := app.Execute("common.update", &fpm.BizParam{
+		"table":     "fake",
+		"condition": "name = 'ff'",
+		"row": map[string]interface{}{
+			"name":  "ff",
+			"value": 103,
 		},
 	})
 

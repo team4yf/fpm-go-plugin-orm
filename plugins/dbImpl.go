@@ -149,7 +149,11 @@ func (p *ormImpl) Find(q *db.QueryData, result interface{}) (err error) {
 	}
 	query := p.db.Table(q.Table).Where(q.Condition, q.Arguments...)
 	if len(q.Fields) > 0 {
-		query = query.Select(q.Fields[0], q.Fields[1:]...)
+		fields := make([]interface{}, len(q.Fields))
+		for i, v := range q.Fields {
+			fields[i] = v
+		}
+		query = query.Select(fields[0], fields[1:]...)
 	}
 	query = query.Offset(q.Pager.Skip).Limit(q.Pager.Limit)
 	if len(q.Sorter) > 0 {
@@ -164,7 +168,11 @@ func (p *ormImpl) Find(q *db.QueryData, result interface{}) (err error) {
 func (p *ormImpl) FindObject(q *db.QueryData) (data []map[string]interface{}, err error) {
 	query := p.db.Table(q.Table).Where(q.Condition, q.Arguments...)
 	if len(q.Fields) > 0 {
-		query = query.Select(q.Fields[0], q.Fields[1:]...)
+		fields := make([]interface{}, len(q.Fields))
+		for i, v := range q.Fields {
+			fields[i] = v
+		}
+		query = query.Select(fields[0], fields[1:]...)
 	}
 	query = query.Offset(q.Pager.Skip).Limit(q.Pager.Limit)
 	if len(q.Sorter) > 0 {
@@ -228,7 +236,11 @@ func (p *ormImpl) FindAndCount(q *db.QueryData, result interface{}, total *int64
 func (p *ormImpl) First(q *db.QueryData, result interface{}) (err error) {
 	query := p.db.Table(q.Table).Where(q.Condition, q.Arguments...)
 	if len(q.Fields) > 0 {
-		query = query.Select(q.Fields[0], q.Fields[1:]...)
+		fields := make([]interface{}, len(q.Fields))
+		for i, v := range q.Fields {
+			fields[i] = v
+		}
+		query = query.Select(fields[0], fields[1:]...)
 	}
 	query = query.Offset(q.Pager.Skip).Limit(q.Pager.Limit)
 	if len(q.Sorter) > 0 {
@@ -285,8 +297,43 @@ func (p *ormImpl) Create(q *db.BaseData, entity interface{}) error {
 		return nil
 	case map[string]interface{}:
 		e = entity.(map[string]interface{})
+	case interface{}:
+		e = entity.(map[string]interface{})
+	default:
+		return d.Create(entity).Error
 	}
-	return d.Create(e).Error
+	//TODO: do sql
+	sql := `INSERT INTO "%s" ("created_at","updated_at","deleted_at",%s) 
+	VALUES (?,?,NULL,%s) RETURNING "id"`
+	keys := make([]string, 0)
+	vals := make([]string, 0)
+	for k, v := range e {
+		keys = append(keys, "\""+k+"\"")
+		switch v.(type) {
+		case string:
+			vals = append(vals, "'"+v.(string)+"'")
+		case float64:
+			f := v.(float64)
+			if int64(f*1000)%1000 == 0 {
+				// it's a int
+				vals = append(vals, fmt.Sprintf("%d", int64(f)))
+			} else {
+				vals = append(vals, fmt.Sprintf("%f", f))
+			}
+		default:
+			vals = append(vals, "\""+fmt.Sprintf("%v", v)+"\"")
+		}
+
+	}
+	sql = fmt.Sprintf(sql, q.Table, strings.Join(keys, ","), strings.Join(vals, ","))
+
+	now := time.Now()
+
+	if err := p.db.Exec(sql, now, now).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
 
 //OK:
@@ -319,6 +366,15 @@ func (p *ormImpl) Updates(q *db.BaseData, updates db.CommonMap, rows *int64) (er
 			continue
 		}
 		keyArr = append(keyArr, k+" = ?")
+		switch v.(type) {
+		case float64:
+			f := v.(float64)
+			if int64(f*1000)%1000 == 0 {
+				// it's a int
+				valArr = append(valArr, int64(f))
+				continue
+			}
+		}
 		valArr = append(valArr, v)
 	}
 	sql := fmt.Sprintf("UPDATE %s SET updated_at=?, %s WHERE deleted_at is not null and ( %s )", q.Table, strings.Join(keyArr[:], ","), q.Condition)
@@ -339,6 +395,10 @@ func (p *ormImpl) Updates(q *db.BaseData, updates db.CommonMap, rows *int64) (er
 //err = dbclient.Execute(`delete from fake where id = 11`, &rows).Error()
 func (p *ormImpl) Execute(sql string, rows *int64) (err error) {
 	d := p.db.Exec(sql)
+	err = d.Error
+	if err != nil {
+		return
+	}
 	*rows = d.RowsAffected
 	return d.Error
 }
