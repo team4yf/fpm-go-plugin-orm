@@ -1,9 +1,11 @@
 package plugins
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -166,7 +168,7 @@ func (p *ormImpl) Find(q *db.QueryData, result interface{}) (err error) {
 }
 
 func (p *ormImpl) FindObject(q *db.QueryData) (data []map[string]interface{}, err error) {
-	query := p.db.Table(q.Table).Where(q.Condition, q.Arguments...)
+	query := p.db.Table(q.Table).Where(fmt.Sprintf("(%s) and deleted_at is null", q.Condition), q.Arguments...)
 	if len(q.Fields) > 0 {
 		fields := make([]interface{}, len(q.Fields))
 		for i, v := range q.Fields {
@@ -234,7 +236,7 @@ func (p *ormImpl) FindAndCount(q *db.QueryData, result interface{}, total *int64
 // one := &Fake{}
 // err = dbclient.Model(one).Condition("name = ?", "c").First(&one).Error()
 func (p *ormImpl) First(q *db.QueryData, result interface{}) (err error) {
-	query := p.db.Table(q.Table).Where(q.Condition, q.Arguments...)
+	query := p.db.Table(q.Table)
 	if len(q.Fields) > 0 {
 		fields := make([]interface{}, len(q.Fields))
 		for i, v := range q.Fields {
@@ -250,6 +252,7 @@ func (p *ormImpl) First(q *db.QueryData, result interface{}) (err error) {
 	}
 	switch result.(type) {
 	case *map[string]interface{}:
+		query.Where(fmt.Sprintf("(%s) and deleted_at is null", q.Condition), q.Arguments...)
 		rows, e := query.Rows()
 		if e != nil {
 			return e
@@ -278,7 +281,7 @@ func (p *ormImpl) First(q *db.QueryData, result interface{}) (err error) {
 		return nil
 
 	}
-	return query.First(result).Error
+	return query.Where(q.Condition, q.Arguments...).First(result).Error
 }
 
 //OK
@@ -289,6 +292,16 @@ func (p *ormImpl) First(q *db.QueryData, result interface{}) (err error) {
 // }).Error()
 func (p *ormImpl) Create(q *db.BaseData, entity interface{}) error {
 	d := p.db.Table(q.Table)
+	//判断传入的entity的类型，如果是结构体或者结构体指针，则直接创建
+	objType := reflect.TypeOf(entity)
+	if objType.Kind() == reflect.Ptr {
+		//指针
+		objType = objType.Elem()
+	}
+	if objType.Kind() == reflect.Struct {
+		return d.Create(entity).Error
+	}
+
 	var e map[string]interface{}
 	switch entity.(type) {
 	case *map[string]interface{}:
@@ -298,9 +311,10 @@ func (p *ormImpl) Create(q *db.BaseData, entity interface{}) error {
 	case map[string]interface{}:
 		e = entity.(map[string]interface{})
 	case interface{}:
+		//通过json转义过来的空接口类型，本身可能是 map 类型
 		e = entity.(map[string]interface{})
 	default:
-		return d.Create(entity).Error
+		return errors.New("unknown data type")
 	}
 	//TODO: do sql
 	sql := `INSERT INTO "%s" ("created_at","updated_at","deleted_at",%s) 

@@ -1,6 +1,7 @@
 package pg
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/team4yf/fpm-go-plugin-orm/plugins"
@@ -10,7 +11,7 @@ import (
 
 type queryReq struct {
 	Table     string      `json:"table,omitempty"`
-	Condition string      `json:"condition,omitempty"`
+	Condition interface{} `json:"condition,omitempty"`
 	Fields    string      `json:"fields,omitempty"`
 	Skip      int         `json:"skip,omitempty"`
 	Limit     int         `json:"limit,omitempty"`
@@ -40,10 +41,19 @@ func parseQuery(req *queryReq) *db.QueryData {
 	}
 
 	if req.Fields != "" {
-		q.AddFields((strings.Split(req.Fields, ","))...)
+		//TODO： 这里尚未考虑到兼容性
+		f := strings.ReplaceAll(req.Fields, "updateAt", "updated_at,(floor(extract(epoch from updated_at))::integer) as updateAt")
+		f = strings.ReplaceAll(f, "createAt", "created_at,(floor(extract(epoch from created_at))::integer) as createAt")
+		q.AddFields((strings.Split(f, ","))...)
 	}
-	if req.Condition != "" {
-		q.SetCondition(req.Condition)
+	if req.Condition != nil {
+		switch req.Condition.(type) {
+		case string:
+			q.SetCondition(req.Condition.(string))
+		default:
+			fmt.Printf("what? %v\n", req.Condition)
+		}
+
 	}
 	if req.ID != 0 {
 		q.SetCondition("id = ?", req.ID)
@@ -196,7 +206,7 @@ func init() {
 
 			q := parseQuery(&req)
 			q.SetTable(req.Table)
-			q.SetCondition(req.Condition)
+			q.SetCondition(req.Condition.(string))
 			var rows int64
 			cm := db.CommonMap{}
 			for k, v := range (req.Data).(map[string]interface{}) {

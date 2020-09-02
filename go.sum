@@ -300,6 +300,8 @@ github.com/team4yf/yf-fpm-server-go v0.1.20 h1:T3eHOceZ8tbEug5f/XEECzNkwur9uZMlr
 github.com/team4yf/yf-fpm-server-go v0.1.20/go.mod h1:5dJbftfRpNBb2cmTsntlilhHoJFRl+lVEB6JH1JBPGk=
 github.com/team4yf/yf-fpm-server-go v0.1.21 h1:gPvUfnHnyZultzFZNvgTrImMnLt6CUcOOi/yE9g/OQM=
 github.com/team4yf/yf-fpm-server-go v0.1.21/go.mod h1:5dJbftfRpNBb2cmTsntlilhHoJFRl+lVEB6JH1JBPGk=
+github.com/team4yf/yf-fpm-server-go v0.1.22 h1:zenTp2y9Y1cy24P5k+qIHUoz5BnYUKy6VezIqD2p+mo=
+github.com/team4yf/yf-fpm-server-go v0.1.22/go.mod h1:5dJbftfRpNBb2cmTsntlilhHoJFRl+lVEB6JH1JBPGk=
 github.com/tebeka/strftime v0.1.5 h1:1NQKN1NiQgkqd/2moD6ySP/5CoZQsKa1d3ZhJ44Jpmg=
 github.com/tebeka/strftime v0.1.5/go.mod h1:29/OidkoWHdEKZqzyDLUyC+LmgDgdHo4WAFCDT7D/Ig=
 github.com/teris-io/shortid v0.0.0-20171029131806-771a37caa5cf h1:Z2X3Os7oRzpdJ75iPqWZc0HeJWFYNCvKsfpQwFpRNTA=

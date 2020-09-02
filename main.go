@@ -3,7 +3,6 @@ package main
 import (
 	_ "github.com/team4yf/fpm-go-plugin-orm/plugins/pg"
 	"github.com/team4yf/yf-fpm-server-go/fpm"
-	"github.com/team4yf/yf-fpm-server-go/pkg/db"
 	"gorm.io/gorm"
 )
 
@@ -22,20 +21,20 @@ func main() {
 
 	app := fpm.New()
 	app.Init()
-	dbclient, _ := app.GetDatabase("pg")
-	for i := 0; i < 1000; i++ {
-		go func() {
-			q := db.NewQuery()
-			q.AddSorter(db.Sorter{
-				Sortby: "name",
-				Asc:    "asc",
-			}).SetTable("fake").SetCondition("name = ?", "c")
-			list := make([]*Fake, 0)
-			var total int64
-			_ = dbclient.FindAndCount(q, &list, &total)
-			app.Logger.Debugf("data: %v", list)
-		}()
-	}
+	// dbclient, _ := app.GetDatabase("pg")
+	// for i := 0; i < 100; i++ {
+	// 	go func() {
+	// 		q := db.NewQuery()
+	// 		q.AddSorter(db.Sorter{
+	// 			Sortby: "name",
+	// 			Asc:    "asc",
+	// 		}).SetTable("fake").SetCondition("name = ?", "c")
+	// 		list := make([]*Fake, 0)
+	// 		var total int64
+	// 		_ = dbclient.FindAndCount(q, &list, &total)
+	// 		app.Logger.Debugf("data: %v", list)
+	// 	}()
+	// }
 
 	app.Run()
 

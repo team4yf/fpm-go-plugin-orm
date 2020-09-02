@@ -1,3 +1,6 @@
 bin/
 logs/
 conf/
+go.sum
+package-lock.json
+node_modules/
