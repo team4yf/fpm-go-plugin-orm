@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/team4yf/yf-fpm-server-go/pkg/utils"
+
 	"github.com/team4yf/fpm-go-plugin-orm/plugins"
 	"github.com/team4yf/yf-fpm-server-go/fpm"
 	"github.com/team4yf/yf-fpm-server-go/pkg/db"
@@ -16,7 +18,7 @@ type queryReq struct {
 	Skip      int         `json:"skip,omitempty"`
 	Limit     int         `json:"limit,omitempty"`
 	Data      interface{} `json:"row,omitempty"`
-	ID        int64       `json:"id,omitempty"`
+	ID        interface{} `json:"id,omitempty"`
 	Sort      string      `json:"sort,omitempty"`
 }
 
@@ -42,21 +44,39 @@ func parseQuery(req *queryReq) *db.QueryData {
 
 	if req.Fields != "" {
 		//TODO： 这里尚未考虑到兼容性
-		f := strings.ReplaceAll(req.Fields, "updateAt", "updated_at,(floor(extract(epoch from updated_at))::integer) as updateAt")
-		f = strings.ReplaceAll(f, "createAt", "created_at,(floor(extract(epoch from created_at))::integer) as createAt")
+		f := strings.ReplaceAll(req.Fields, "updateAt", "updated_at,(floor(extract(epoch from updated_at) *1000)::bigint) as updateAt")
+		f = strings.ReplaceAll(f, "createAt", "created_at,(floor(extract(epoch from created_at) *1000)::bigint) as createAt")
 		q.AddFields((strings.Split(f, ","))...)
 	}
 	if req.Condition != nil {
 		switch req.Condition.(type) {
 		case string:
 			q.SetCondition(req.Condition.(string))
+		case map[string]interface{}:
+			conditions := req.Condition.(map[string]interface{})
+			keys := make([]string, 0)
+			vals := make([]interface{}, 0)
+			for k, v := range conditions {
+				keys = append(keys, k+" = ?")
+				vals = append(vals, v)
+			}
+			q.SetCondition(strings.Join(keys, ","), vals...)
 		default:
 			fmt.Printf("what? %v\n", req.Condition)
 		}
 
 	}
-	if req.ID != 0 {
-		q.SetCondition("id = ?", req.ID)
+	if req.ID != nil {
+		//对ID的类型进行判断
+		switch req.ID.(type) {
+		case float64:
+			q.SetCondition("id = ?", (int64)(req.ID.(float64)))
+		case int64:
+			q.SetCondition("id = ?", req.ID.(int64))
+		default:
+			q.SetCondition("id = ?", req.ID)
+		}
+
 	}
 
 	if req.Sort != "" {
@@ -167,7 +187,6 @@ func init() {
 			}
 
 			q := parseQuery(&req)
-			q.SetCondition("id = ?", req.ID)
 			var rows int64
 			err = dbclient.Remove(q.BaseData, &rows)
 			data = rows
@@ -205,12 +224,12 @@ func init() {
 			}
 
 			q := parseQuery(&req)
-			q.SetTable(req.Table)
-			q.SetCondition(req.Condition.(string))
+			//here, it's unsafe, the condition could be interface{}
+			// q.SetCondition(req.Condition.(string))
 			var rows int64
 			cm := db.CommonMap{}
-			for k, v := range (req.Data).(map[string]interface{}) {
-				cm[k] = v
+			if err = utils.Interface2Struct(req.Data, &cm); err != nil {
+				return
 			}
 			err = dbclient.Updates(q.BaseData, cm, &rows)
 			data = rows

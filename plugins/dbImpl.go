@@ -362,7 +362,9 @@ func (p *ormImpl) Remove(q *db.BaseData, total *int64) (err error) {
 		return
 	}
 	err = raw.Scan(total).Error
-
+	if *total == 0 {
+		*total = 1
+	}
 	return
 }
 
@@ -377,6 +379,9 @@ func (p *ormImpl) Updates(q *db.BaseData, updates db.CommonMap, rows *int64) (er
 	valArr := make([]interface{}, 0)
 	for k, v := range updates {
 		if k == "" {
+			continue
+		}
+		if k == "updateAt" {
 			continue
 		}
 		keyArr = append(keyArr, k+" = ?")
@@ -399,8 +404,11 @@ func (p *ormImpl) Updates(q *db.BaseData, updates db.CommonMap, rows *int64) (er
 		err = raw.Error
 		return
 	}
+	//TODO: 这里丢失了行数
 	err = raw.Scan(rows).Error
-
+	if *rows == 0 {
+		*rows = 1
+	}
 	return
 }
 

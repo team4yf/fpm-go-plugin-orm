@@ -250,6 +250,7 @@ func TestUpdateBiz(t *testing.T) {
 	data, err := app.Execute("common.update", &fpm.BizParam{
 		"table":     "fake",
 		"condition": "name = 'ff'",
+		"id":        112,
 		"row": map[string]interface{}{
 			"name":  "ff",
 			"value": 103,
