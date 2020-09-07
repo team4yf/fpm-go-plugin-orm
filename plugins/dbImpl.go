@@ -396,7 +396,7 @@ func (p *ormImpl) Updates(q *db.BaseData, updates db.CommonMap, rows *int64) (er
 		}
 		valArr = append(valArr, v)
 	}
-	sql := fmt.Sprintf("UPDATE %s SET updated_at=?, %s WHERE deleted_at is not null and ( %s )", q.Table, strings.Join(keyArr[:], ","), q.Condition)
+	sql := fmt.Sprintf("UPDATE %s SET updated_at=?, %s WHERE deleted_at is null and ( %s )", q.Table, strings.Join(keyArr[:], ","), q.Condition)
 	params := append([]interface{}{time.Now()}, valArr...)
 	params = append(params, q.Arguments...)
 	raw := p.db.Raw(sql, params...)
