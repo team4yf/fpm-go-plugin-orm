@@ -38,6 +38,7 @@ github.com/creack/pty v1.1.7/go.mod h1:lj5s0c3V2DBrqTV7llrYr5NG6My20zk30Fl46Y7Do
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/dgrijalva/jwt-go v3.2.0+incompatible h1:7qlOGliEKZXTDg6OTjfoBKDXWrumCAMpl/TFQ4/5kLM=
 github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZmtrrCbhqsmaPHjLKYnJCaQ=
 github.com/dgryski/go-sip13 v0.0.0-20181026042036-e10d5fee7954/go.mod h1:vAd38F8PWV+bWy6jNmig1y/TA+kYO4g3RSRF0IAv0no=
 github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 h1:Ghm4eQYC0nEPnSJdVkTrXpu9KtoVCSo1hg7mtI7G9KU=
@@ -292,8 +293,11 @@ github.com/stretchr/testify v1.4.0 h1:2E4SXV/wtOkTonXsotYi4li6zVWxYlZuYNCXe9XRJy
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
 github.com/stretchr/testify v1.5.1 h1:nOGnQDM7FYENwehXlg/kFVnos3rEvtKTjRvOWSzb6H4=
 github.com/stretchr/testify v1.5.1/go.mod h1:5W2xD1RspED5o8YsWQXVCued0rvSQ+mT+I5cxcmMvtA=
+github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/subosito/gotenv v1.2.0 h1:Slr1R9HxAlEKefgq5jn9U+DnETlIUa6HfgEzj0g5d7s=
 github.com/subosito/gotenv v1.2.0/go.mod h1:N0PQaV/YGNqwC0u51sEeR/aUtSLEXKX9iv69rRypqCw=
+github.com/team4yf/fpm-go-pkg v0.0.0-20200907232930-67704d580ed7 h1:Aj3aR0AJbtGMaaFopjtSD6etjFDDfOQKpa6kgI2Mg+g=
+github.com/team4yf/fpm-go-pkg v0.0.0-20200907232930-67704d580ed7/go.mod h1:XbqR6ji35BTcEgTean4+wXcImNniLBXv3Y6v4m289Lw=
 github.com/team4yf/yf-fpm-server-go v0.1.19 h1:6ad6qGjoODYSCqmi+H9N67X/VTGbgheQpYrW5H7Ml6E=
 github.com/team4yf/yf-fpm-server-go v0.1.19/go.mod h1:5dJbftfRpNBb2cmTsntlilhHoJFRl+lVEB6JH1JBPGk=
 github.com/team4yf/yf-fpm-server-go v0.1.20 h1:T3eHOceZ8tbEug5f/XEECzNkwur9uZMlrACBZKiW03Y=
@@ -302,6 +306,8 @@ github.com/team4yf/yf-fpm-server-go v0.1.21 h1:gPvUfnHnyZultzFZNvgTrImMnLt6CUcOO
 github.com/team4yf/yf-fpm-server-go v0.1.21/go.mod h1:5dJbftfRpNBb2cmTsntlilhHoJFRl+lVEB6JH1JBPGk=
 github.com/team4yf/yf-fpm-server-go v0.1.22 h1:zenTp2y9Y1cy24P5k+qIHUoz5BnYUKy6VezIqD2p+mo=
 github.com/team4yf/yf-fpm-server-go v0.1.22/go.mod h1:5dJbftfRpNBb2cmTsntlilhHoJFRl+lVEB6JH1JBPGk=
+github.com/team4yf/yf-fpm-server-go v0.2.4 h1:eGKDyDi9LJ4hU8xRxNERLHRVBwc5CGqN3vyTLzeRFk0=
+github.com/team4yf/yf-fpm-server-go v0.2.4/go.mod h1:BFK4o183ZtoJp0dBhLzGLU4c3lIk1iKvZWx8x3DNO70=
 github.com/tebeka/strftime v0.1.5 h1:1NQKN1NiQgkqd/2moD6ySP/5CoZQsKa1d3ZhJ44Jpmg=
 github.com/tebeka/strftime v0.1.5/go.mod h1:29/OidkoWHdEKZqzyDLUyC+LmgDgdHo4WAFCDT7D/Ig=
 github.com/teris-io/shortid v0.0.0-20171029131806-771a37caa5cf h1:Z2X3Os7oRzpdJ75iPqWZc0HeJWFYNCvKsfpQwFpRNTA=
@@ -481,6 +487,8 @@ gopkg.in/yaml.v2 v2.2.2/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
 gopkg.in/yaml.v2 v2.2.4/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
 gopkg.in/yaml.v2 v2.3.0 h1:clyUAQHOM3G0M3f5vQj7LuJrETvjVot3Z5el9nffUtU=
 gopkg.in/yaml.v2 v2.3.0/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
+gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
+gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
 gorm.io/driver/postgres v1.0.0 h1:Yh4jyFQ0a7F+JPU0Gtiam/eKmpT/XFc1FKxotGqc6FM=
 gorm.io/driver/postgres v1.0.0/go.mod h1:wtMFcOzmuA5QigNsgEIb7O5lhvH1tHAF1RbWmLWV4to=
 gorm.io/gorm v1.9.19/go.mod h1:0HFTzE/SqkGTzK6TlDPPQbAYCluiVvhzoA1+aVyzenw=

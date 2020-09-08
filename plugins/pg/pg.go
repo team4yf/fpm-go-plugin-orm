@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/team4yf/yf-fpm-server-go/pkg/utils"
+	"github.com/team4yf/fpm-go-pkg/utils"
 
 	"github.com/team4yf/fpm-go-plugin-orm/plugins"
 	"github.com/team4yf/yf-fpm-server-go/fpm"
