@@ -244,7 +244,7 @@ func (p *ormImpl) First(q *db.QueryData, result interface{}) (err error) {
 		}
 		query = query.Select(fields[0], fields[1:]...)
 	}
-	query = query.Offset(q.Pager.Skip).Limit(q.Pager.Limit)
+	query = query.Offset(0).Limit(1)
 	if len(q.Sorter) > 0 {
 		for _, sort := range q.Sorter {
 			query = query.Order(sort.Sortby + " " + sort.Asc)
