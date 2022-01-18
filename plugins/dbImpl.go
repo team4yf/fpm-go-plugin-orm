@@ -322,6 +322,9 @@ func (p *ormImpl) Create(q *db.BaseData, entity interface{}) error {
 	keys := make([]string, 0)
 	vals := make([]string, 0)
 	for k, v := range e {
+		if k == "updateAt" || k == "createAt" || k == "createat" || k == "updateat" {
+			continue
+		}
 		keys = append(keys, "\""+k+"\"")
 		switch v.(type) {
 		case string:

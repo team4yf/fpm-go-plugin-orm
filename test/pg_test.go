@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/team4yf/yf-fpm-server-go/fpm"
@@ -252,8 +253,9 @@ func TestUpdateBiz(t *testing.T) {
 		"condition": "name = 'ff'",
 		"id":        112,
 		"row": map[string]interface{}{
-			"name":  "ff",
-			"value": 103,
+			"name":     "ff",
+			"createAt": time.Now().Unix(),
+			"value":    103,
 		},
 	})
 

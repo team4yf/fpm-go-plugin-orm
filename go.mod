@@ -5,7 +5,7 @@ go 1.14
 require (
 	github.com/google/uuid v1.1.2 // indirect
 	github.com/magiconair/properties v1.8.2 // indirect
-	github.com/stretchr/testify v1.6.1
+	github.com/stretchr/testify v1.7.0
 	github.com/team4yf/fpm-go-pkg v0.0.0-20200909075814-040cb22d0a7d
 	github.com/team4yf/yf-fpm-server-go v0.2.4
 	go.uber.org/zap v1.16.0 // indirect
