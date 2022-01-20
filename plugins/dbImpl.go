@@ -216,7 +216,7 @@ func (p *ormImpl) FindObject(q *db.QueryData) (data []map[string]interface{}, er
 // err = dbclient.Model(Fake{}).Condition("name = ?", "c").Count(&total).Error()
 // total is the count
 func (p *ormImpl) Count(q *db.BaseData, total *int64) error {
-	return p.db.Table(q.Table).Where(q.Condition, q.Arguments...).Count(total).Error
+	return p.db.Table(q.Table).Where(fmt.Sprintf("(%s) and deleted_at is null", q.Condition, q.Arguments...).Count(total).Error
 }
 
 //OK
