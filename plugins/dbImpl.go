@@ -145,11 +145,9 @@ func (p *ormImpl) Find(q *db.QueryData, result interface{}) (err error) {
 		if e != nil {
 			return e
 		}
-
 		return
-
 	}
-	query := p.db.Table(q.Table).Where(q.Condition, q.Arguments...)
+	query := p.db.Table(q.Table).Where(fmt.Sprintf("(%s) and deleted_at is null", q.Condition), q.Arguments...)
 	if len(q.Fields) > 0 {
 		fields := make([]interface{}, len(q.Fields))
 		for i, v := range q.Fields {
