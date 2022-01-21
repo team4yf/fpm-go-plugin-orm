@@ -250,9 +250,9 @@ func (p *ormImpl) First(q *db.QueryData, result interface{}) (err error) {
 			query = query.Order(sort.Sortby + " " + sort.Asc)
 		}
 	}
+	query.Where(fmt.Sprintf("(%s) and deleted_at is null", q.Condition), q.Arguments...)
 	switch result.(type) {
 	case *map[string]interface{}:
-		query.Where(fmt.Sprintf("(%s) and deleted_at is null", q.Condition), q.Arguments...)
 		rows, e := query.Rows()
 		if e != nil {
 			return e
@@ -281,7 +281,7 @@ func (p *ormImpl) First(q *db.QueryData, result interface{}) (err error) {
 		return nil
 
 	}
-	return query.Where(q.Condition, q.Arguments...).First(result).Error
+	return query.First(result).Error
 }
 
 //OK
