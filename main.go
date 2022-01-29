@@ -21,7 +21,10 @@ func main() {
 
 	app := fpm.New()
 	app.Init()
-	// dbclient, _ := app.GetDatabase("pg")
+	dbclient, _ := app.GetDatabase("pg")
+	if err := dbclient.AutoMigrate(); err != nil {
+		app.Logger.Errorf(err.Error())
+	}
 	// for i := 0; i < 100; i++ {
 	// 	go func() {
 	// 		q := db.NewQuery()
