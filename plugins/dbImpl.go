@@ -3,9 +3,13 @@ package plugins
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"reflect"
+	"regexp"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -32,6 +36,19 @@ type DBSetting struct {
 	ShowSQL  bool
 }
 
+type MigrationHistory struct {
+	gorm.Model  `json:"-"`
+	Version     string
+	Description string
+	Script      string
+	InstalledAt time.Time
+	Success     int
+}
+
+func (h *MigrationHistory) TableName() string {
+	return "migration_histories"
+}
+
 //NewImpl create a new impl
 func NewImpl(db *gorm.DB) db.Database {
 	return &ormImpl{
@@ -41,8 +58,8 @@ func NewImpl(db *gorm.DB) db.Database {
 
 //ormImpl the implement of the orm
 type ormImpl struct {
-	locker sync.Mutex
-	db     *gorm.DB
+	// locker sync.Mutex
+	db *gorm.DB
 }
 
 //New create a new instance
@@ -81,7 +98,7 @@ func CreateDb(setting *DBSetting) *gorm.DB {
 	if err != nil {
 		panic(err)
 	}
-	sqlDB, err := db.DB()
+	sqlDB, _ := db.DB()
 	sqlDB.SetConnMaxLifetime(time.Minute * 30)
 	sqlDB.SetMaxIdleConns(5)
 	sqlDB.SetMaxOpenConns(50)
@@ -116,7 +133,73 @@ func getDbEngineDSN(db *DBSetting) string {
 
 //AutoMigrate migrate table from the model
 func (p *ormImpl) AutoMigrate(tables ...interface{}) (err error) {
-	return p.db.AutoMigrate(tables...)
+	migrationHistory := MigrationHistory{}
+	if err = p.db.AutoMigrate(&migrationHistory); err != nil {
+		return
+	}
+	if err = p.db.AutoMigrate(tables...); err != nil {
+		return
+	}
+	// get migration scripts from folder
+
+	query := db.NewQuery()
+	query.SetTable(migrationHistory.TableName())
+	var count int64
+	if err = p.Count(query.BaseData, &count); err != nil {
+		return
+	}
+	if count > 0 {
+		query.AddSorter(db.Sorter{
+			Sortby: "installed_at",
+			Asc:    "desc",
+		})
+		err = p.First(query, &migrationHistory)
+	}
+	reScript, _ := regexp.Compile(`^V(\d|\.)+`)
+	// fetch scripts
+	scripts := []string{}
+	if files, ex := ioutil.ReadDir("migrations"); ex != nil {
+		return ex
+	} else {
+		for _, f := range files {
+			if count == 0 || reScript.FindString(f.Name()) > reScript.FindString(migrationHistory.Script) {
+				scripts = append(scripts, f.Name())
+			}
+		}
+	}
+	if len(scripts) == 0 {
+		return
+	}
+	reVersion, _ := regexp.Compile(`^V\d+`)
+	reDesc, _ := regexp.Compile(`__(\w|\s|_|-|\+)+`)
+	sort.Strings(scripts)
+	for _, s := range scripts {
+		var raw []byte
+		if raw, err = os.ReadFile(fmt.Sprintf("migrations%s%s", string(filepath.Separator), s)); err != nil {
+			return
+		}
+		fmt.Printf("%s", string(raw))
+		if err = p.db.Transaction(func(tx *gorm.DB) (ex error) {
+			// run script
+			if ex = tx.Exec(string(raw)).Error; ex != nil {
+				return
+			}
+			// add record
+			if ex = tx.Create(&MigrationHistory{
+				Version:     reVersion.FindString(s),
+				Description: reDesc.FindString(s),
+				Script:      s,
+				InstalledAt: time.Now(),
+				Success:     1,
+			}).Error; ex != nil {
+				return
+			}
+			return
+		}); err != nil {
+			return
+		}
+	}
+	return
 }
 
 func (p *ormImpl) Transaction(body func(db.Database) error) error {

@@ -18,6 +18,25 @@ import (
 )
 ```
 
+## AutoMigration
+
+All sql files under `migrations` will be automatically migrated.
+
+```
+- migrations
+  - V1.2022.01.01.00__test.sql
+```
+
+`V1`: version of db, could be `V*`, keep `*` as increasingly number.
+`2022.01.01`: date of migration
+`00`: sequence of migration, reset when another day starts.
+`test`: desc of migration
+
+double underscore should be added between date and desc.
+
+program will execute all migrations as the sort of migration name.
+
+
 ## Config
 
 ```json
