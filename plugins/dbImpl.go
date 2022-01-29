@@ -178,7 +178,6 @@ func (p *ormImpl) AutoMigrate(tables ...interface{}) (err error) {
 		if raw, err = os.ReadFile(fmt.Sprintf("migrations%s%s", string(filepath.Separator), s)); err != nil {
 			return
 		}
-		fmt.Printf("%s", string(raw))
 		if err = p.db.Transaction(func(tx *gorm.DB) (ex error) {
 			// run script
 			if ex = tx.Exec(string(raw)).Error; ex != nil {
