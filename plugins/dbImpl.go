@@ -21,7 +21,8 @@ import (
 )
 
 var (
-	locker sync.Mutex
+	locker     sync.Mutex
+	dbInstance *gorm.DB
 )
 
 //DBSetting database setting
@@ -66,8 +67,15 @@ type ormImpl struct {
 func New(setting *DBSetting) *gorm.DB {
 	locker.Lock()
 	defer locker.Unlock()
-	db := CreateDb(setting)
-	return db
+	dbInstance = CreateDb(setting)
+	return dbInstance
+}
+
+func GetDB() (*gorm.DB, error) {
+	if dbInstance == nil {
+		return nil, errors.New("NO_INSTANCE_CREATED")
+	}
+	return dbInstance, nil
 }
 
 //CreateDb create new instance
