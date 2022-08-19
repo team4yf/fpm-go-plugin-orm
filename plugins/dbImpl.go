@@ -35,6 +35,7 @@ type DBSetting struct {
 	Database string
 	Charset  string
 	ShowSQL  bool
+	Dsn      string
 }
 
 type MigrationHistory struct {
@@ -100,12 +101,19 @@ func CreateDb(setting *DBSetting) *gorm.DB {
 		log.New(os.Stdout, "\r\n", log.LstdFlags), // io writer
 		logConf,
 	)
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: newLogger,
-	})
-	if err != nil {
-		panic(err)
+	var db *gorm.DB
+	if setting.Engine == "postgres" {
+		var err error
+		db, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
+			Logger: newLogger,
+		})
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		panic("engine: [" + setting.Engine + "] not implemented")
 	}
+
 	sqlDB, _ := db.DB()
 	sqlDB.SetConnMaxLifetime(time.Minute * 30)
 	sqlDB.SetMaxIdleConns(5)
@@ -118,6 +126,9 @@ func CreateDb(setting *DBSetting) *gorm.DB {
 func getDbEngineDSN(db *DBSetting) string {
 	engine := strings.ToLower(db.Engine)
 	dsn := ""
+	if db.Dsn != "" {
+		return db.Dsn
+	}
 	switch engine {
 	case "mysql":
 		dsn = fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=%s&allowNativePasswords=true",
