@@ -150,6 +150,13 @@ func getDbEngineDSN(db *DBSetting) string {
 	return dsn
 }
 
+func (p *ormImpl) GetDB() (interface{}, error) {
+	if p.db == nil {
+		return nil, errors.New("NO_INSTANCE_CREATED")
+	}
+	return p.db, nil
+}
+
 //AutoMigrate migrate table from the model
 func (p *ormImpl) AutoMigrate(tables ...interface{}) (err error) {
 	migrationHistory := MigrationHistory{}
